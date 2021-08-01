@@ -2,10 +2,11 @@
 
 class Cell {
 
-    constructor(posX, posY, size) {
+    constructor(posX, posY, cellWidth, cellHeight) {
         this.posX = posX;
         this.posY = posY;
-        this.size = size;
+        this.cellWidth = cellWidth;
+        this.cellHeight = cellHeight;
         this.clicked = false;
         this.bomb = false;
         this.flagged = false;
@@ -13,7 +14,7 @@ class Cell {
     }
 
     drawCell() {
-        rect(this.posX * this.size, this.posY * this.size, this.size, this.size);
+        rect(this.posX * this.cellWidth, this.posY * this.cellHeight, this.cellWidth, this.cellHeight);
     }
 
     setAsBomb() {
@@ -31,16 +32,21 @@ class Cell {
             fill(0);
         }
         else if (this.bombCounter == 1) {
-            fill(color('green'))
+            fill(color('blue'))
         } else if (this.bombCounter == 2) {
-            fill(color('yellow'))
+            fill(color('green'))
         } else if (this.bombCounter == 3) {
-            fill(color('orange'))
+            fill(color('red'))
         } else if (this.bombCounter == 4) {
             fill(color('purple'))
         } else if (this.bombCounter == 5) {
             fill(color('brown'))
-        } else {
+        } else if (this.bombCounter == 6) {
+            fill(color('Turquoise'))
+        }else if (this.bombCounter == 7) {
+            fill(color('yellow'))
+        }
+         else {
             fill(color('gray'))
         }
         this.drawCell();
@@ -79,13 +85,19 @@ class Cell {
 
 class Board {
 
-    constructor(width, height, cellDimension, bombRatio) {
-        this.bombRatio = bombRatio;
-        this.cellDimension = cellDimension;
-        this.width = Math.floor(width / cellDimension) * cellDimension;
-        this.height = Math.floor(height / cellDimension) * cellDimension;
-        this.cols = this.width / this.cellDimension;
-        this.rows = this.height / this.cellDimension;
+    constructor(cols, rows, bombs) {
+        this.bombRatio = bombs;
+
+        this.cols = cols;
+        this.rows = rows;
+
+        this.cellWidth = Math.floor((window.innerWidth-10)/cols);
+        this.cellHeight = Math.floor((window.innerHeight-100)/rows);
+
+        console.log(this.cellWidth, this.cellHeight);
+        this.width = Math.floor((window.innerWidth-10) / this.cellWidth) * this.cellWidth;
+        this.height = Math.floor((window.innerHeight-100) / this.cellHeight) * this.cellHeight;
+        console.log(this.width, this.height);
 
         createCanvas(this.width, this.height);
         background(100);
@@ -96,7 +108,7 @@ class Board {
         for (let i = 0; i < this.cols; i++) {
             this.cells[i] = [];
             for (let j = 0; j < this.rows; j++) {
-                this.cells[i][j] = new Cell(i, j, this.cellDimension);
+                this.cells[i][j] = new Cell(i, j, this.cellWidth, this.cellHeight);
                 this.cells[i][j].drawCell();
             }
         }
@@ -104,7 +116,7 @@ class Board {
 
     calculateBombs() {
         this.bombs = [];
-        this.maxBombs = (this.cols * this.rows) / this.bombRatio;
+        this.maxBombs = this.bombRatio;
         let i = 0;
         while (i < this.maxBombs) {
             let x = Math.floor(Math.random() * this.cols);
@@ -138,7 +150,10 @@ class Board {
     showSolvedBoard() {
         for (let i = 0; i < this.cells.length; i++) {
             for (let j = 0; j < this.cells[i].length; j++) {
-                this.cells[i][j].setCounterColor();
+                if(!this.cells[i][j].flagged) {
+                    this.cells[i][j].setCounterColor();
+                }
+                
             }
         }
     }
@@ -150,27 +165,29 @@ class Game {
     gameOver = false;
     flaggedArray = []
     bombsArray = []
-
+    started = false
+    hola = 90
     constructor(type="expert") { 
         
         switch(type) {
             case "expert":
-                this.board = new Board(1500, 950, 50, 6);
+                this.board = new Board(24, 20,  99);
                 break
             case "medium":
-                this.board = new Board(1000, 700, 50, 10);
+                this.board = new Board(18, 14, 40);
                 break
             case "easy":
-                this.board = new Board(500, 500, 50, 15);
+                this.board = new Board(10, 8, 10);
                 break
             default:
-                this.board = new Board(1500, 950, 50, 4);
+                this.board = new Board(24, 20,  99);
         }
 
         this.board.drawCells();
         this.bombsArray = this.board.calculateBombs();
         this.maxFlags = this.bombsArray.length;
         this.board.calculateNoBombs();
+        this.test = 0;
     }
 
     calculateReveal(x, y) {
@@ -210,15 +227,25 @@ class Game {
         if(this.board.width < xCoord || this.board.height < yCoord) {
             return
         }
+
+        if(!this.started){
+            console.log("started")
+            this.started = true;
+            this.startTimer();
+        }else{
+            console.log("stopped")
+        }
+
         if( this.gameOver ) { return }
-        this.calculateReveal(Math.floor(xCoord / this.board.cellDimension), Math.floor(yCoord / this.board.cellDimension))
+        this.calculateReveal(Math.floor(xCoord / this.board.cellWidth), Math.floor(yCoord / this.board.cellHeight))
     }
 
     rightClick(xCoord, yCoord) {
         if(this.board.width < xCoord || this.board.height < yCoord) {
             return
         }
-        let cell = this.board.cells[Math.floor(xCoord / this.board.cellDimension)][Math.floor(yCoord / this.board.cellDimension)]
+        
+        let cell = this.board.cells[Math.floor(xCoord / this.board.cellWidth)][Math.floor(yCoord / this.board.cellHeight)]
         cell.flag();
         if(cell.flagged) {
             this.flaggedArray.push(cell)
@@ -259,10 +286,24 @@ class Game {
         text("You lost!", this.board.width / 3  , this.board.height / 2);
         
     }
+
+    timeIt(timer) {
+        console.log(timer)
+        this.timer ++;
+      }
+    
+    startTimer() {
+        background(color('white'));
+        text(toString( this.timer))
+        textAlign(CENTER);
+        setInterval(this.timeIt(this.timer), 1000);
+    }
 }
 
 document.addEventListener('contextmenu', event => event.preventDefault()); 
+
 let game;
+
 function setup() {
     game = new Game();
     expert = createButton('Expert Mode');
@@ -270,9 +311,10 @@ function setup() {
     easy = createButton('Easy Mode');
     expert.mousePressed(() => { game = new Game("expert")} );
     medium.mousePressed(() => { game = new Game("medium")} );
-    ea.mousePressed(() => { game = new Game("easy")} );
+    easy.mousePressed(() => { game = new Game("easy")} );
     //gam = new Game();
     //game.board.showSolvedBoard();
+
 }
 
 function mousePressed(event) {
@@ -282,3 +324,4 @@ function mousePressed(event) {
         game.leftCick(mouseX, mouseY)
     }
 }
+
